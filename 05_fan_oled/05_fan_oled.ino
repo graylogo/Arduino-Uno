@@ -29,6 +29,11 @@ int pwmValue = 0;
 int fanRpm = 0;
 int speedPercent = 0;
 
+// 缓存上一次的显示值，只在变化时刷新
+int lastAdcValue = -1;
+int lastPwmValue = -1;
+int lastFanRpm = -1;
+
 #define OLED_SCLK_Clr() digitalWrite(scl,LOW)//SCL
 #define OLED_SCLK_Set() digitalWrite(scl,HIGH)
 
@@ -72,6 +77,9 @@ void setup()
   OLED_ShowString(0,20," System Ready! ",12);
   OLED_Refresh();
   delay(1000);
+  
+  // 初始清屏一次，后续不用每次清
+  OLED_Clear();
 }
 
 void loop()
@@ -91,33 +99,41 @@ void loop()
     lastTachTime = now;
   }
   
-  // 3. 每200ms更新一次OLED
-  if (now - lastOledUpdate >= 200) {
-    OLED_Clear();
-    
-    OLED_ShowString(0,0,"=Fan Monitor=",12);
-    
-    // 第一行：ADC和电压
-    OLED_ShowString(0,16,"ADC:",12);
-    OLED_ShowNum(36,16,adcValue,4,12);
-    int voltInt = adcValue * 50 / 1023;
-    OLED_ShowString(76,16,"V:",12);
-    OLED_ShowNum(96,16,voltInt/10,1,12);
-    OLED_ShowString(104,16,".",12);
-    OLED_ShowNum(110,16,voltInt%10,1,12);
-    
-    // 第二行：PWM和百分比
-    OLED_ShowString(0,32,"PWM:",12);
-    OLED_ShowNum(36,32,pwmValue,3,12);
-    OLED_ShowString(64,32,"Spd:",12);
-    OLED_ShowNum(96,32,speedPercent,3,12);
-    OLED_ShowString(116,32,"%",12);
-    
-    // 第三行：转速
-    OLED_ShowString(0,48,"RPM:",12);
-    OLED_ShowNum(36,48,fanRpm,5,12);
-    
-    OLED_Refresh();
+  // 3. 每100ms检查是否需要更新OLED（只有内容变化时才刷新）
+  if (now - lastOledUpdate >= 100) {
+    if (adcValue != lastAdcValue || pwmValue != lastPwmValue || fanRpm != lastFanRpm) {
+      // 先清屏（只在需要时清）
+      OLED_Clear();
+      
+      OLED_ShowString(0,0,"=Fan Monitor=",12);
+      
+      // 第一行：ADC和电压
+      OLED_ShowString(0,16,"ADC:",12);
+      OLED_ShowNum(36,16,adcValue,4,12);
+      int voltInt = adcValue * 50 / 1023;
+      OLED_ShowString(76,16,"V:",12);
+      OLED_ShowNum(96,16,voltInt/10,1,12);
+      OLED_ShowString(104,16,".",12);
+      OLED_ShowNum(110,16,voltInt%10,1,12);
+      
+      // 第二行：PWM和百分比
+      OLED_ShowString(0,32,"PWM:",12);
+      OLED_ShowNum(36,32,pwmValue,3,12);
+      OLED_ShowString(64,32,"Spd:",12);
+      OLED_ShowNum(96,32,speedPercent,3,12);
+      OLED_ShowString(116,32,"%",12);
+      
+      // 第三行：转速
+      OLED_ShowString(0,48,"RPM:",12);
+      OLED_ShowNum(36,48,fanRpm,5,12);
+      
+      OLED_Refresh();
+      
+      // 更新缓存
+      lastAdcValue = adcValue;
+      lastPwmValue = pwmValue;
+      lastFanRpm = fanRpm;
+    }
     lastOledUpdate = now;
   }
 }
@@ -186,7 +202,7 @@ void OLED_Clear(void)
        OLED_GRAM[n][i]=0;//清除所有数据
       }
   }
-  OLED_Refresh();//更新显示
+  // 不在这里Refresh，统一调用
 }
 
 //画点 
