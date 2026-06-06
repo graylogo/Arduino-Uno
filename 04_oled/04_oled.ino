@@ -4,12 +4,16 @@
 //              VCC  3.3v电源
 //              D0   8（SCL）
 //              D1   9（SDA）
-//              RES  10    注：此引脚是为了配合SPI驱动模块改成I2C驱动模块使用的（改装的话必须接），如果买的是I2C模块，请忽略此引脚。
+//              RES  10
+//              DC   11
+//              CS   12 
 #include "font.h"
 
 int scl=8;//定义数字接口8
 int sda=9;//定义数字接口9
 int res=10;//定义数字接口10
+int dc=11;//定义数字接口11
+int cs=12;//定义数字接口12
 
 #define OLED_SCLK_Clr() digitalWrite(scl,LOW)//SCL
 #define OLED_SCLK_Set() digitalWrite(scl,HIGH)
@@ -17,8 +21,14 @@ int res=10;//定义数字接口10
 #define OLED_SDIN_Clr() digitalWrite(sda,LOW)//SDA
 #define OLED_SDIN_Set() digitalWrite(sda,HIGH)
 
-#define OLED_RST_Clr() digitalWrite(res,LOW)//RES   注：此引脚是为了配合SPI驱动模块改成I2C驱动模块使用的（改装的话必须接），如果买的是I2C模块，请忽略此引脚。
+#define OLED_RST_Clr() digitalWrite(res,LOW)//RES
 #define OLED_RST_Set() digitalWrite(res,HIGH)
+
+#define OLED_DC_Clr()  digitalWrite(dc,LOW)//DC
+#define OLED_DC_Set()  digitalWrite(dc,HIGH)
+          
+#define OLED_CS_Clr()  digitalWrite(cs,LOW)//CS
+#define OLED_CS_Set()  digitalWrite(cs,HIGH)
 
 
 #define OLED_CMD  0  //写命令
@@ -58,6 +68,8 @@ void setup()
     OLED_ShowString(0,0,"ABC",12);//6*12 “ABC”
     OLED_ShowString(0,12,"ABC",16);//8*16 “ABC”
     OLED_ShowString(0,28,"ABC",24);//12*24 “ABC”
+    OLED_Refresh();
+    delay(500);
   }
 }
 
@@ -65,14 +77,14 @@ void loop()
 {
 }
 //反显函数
-void OLED_ColorTurn(uint8_t i)
+void OLED_ColorTurn(u8 i)
 {
   if(!i) OLED_WR_Byte(0xA6,OLED_CMD);//正常显示
   else  OLED_WR_Byte(0xA7,OLED_CMD);//反色显示
 }
 
 //屏幕旋转180度
-void OLED_DisplayTurn(uint8_t i)
+void OLED_DisplayTurn(u8 i)
 {
   if(i==0)
     {
@@ -85,65 +97,24 @@ else
       OLED_WR_Byte(0xA0,OLED_CMD);
     }
 }
-//起始信号
-void I2C_Start(void)
-{
-  OLED_SDIN_Set();
-  OLED_SCLK_Set();
-  OLED_SDIN_Clr();
-  OLED_SCLK_Clr();
-}
-
-//结束信号
-void I2C_Stop(void)
-{
-  OLED_SCLK_Set();
-  OLED_SDIN_Clr();
-  OLED_SDIN_Set();
-}
-
-//等待信号响应
-void I2C_WaitAck(void) //测数据信号的电平
-{
-  OLED_SCLK_Set();
-  OLED_SCLK_Clr();
-}
-
-//写入一个字节
-void Send_Byte(uint8_t dat)
-{
+void OLED_WR_Byte(uint8_t dat,uint8_t cmd)
+{  
   uint8_t i;
+  if(cmd)
+    OLED_DC_Set();
+  else
+    OLED_DC_Clr();
+  OLED_CS_Clr();
   for(i=0;i<8;i++)
   {
-    OLED_SCLK_Clr();//将时钟信号设置为低电平
-    if(dat&0x80)//将dat的8位从最高位依次写入
-    {
-      OLED_SDIN_Set();
-    }
-    else
-    {
-      OLED_SDIN_Clr();
-    }
-    OLED_SCLK_Set();//将时钟信号设置为高电平
-    OLED_SCLK_Clr();//将时钟信号设置为低电平
-    dat<<=1;
-  }
-}
-
-//发送一个字节
-//向SSD1306写入一个字节。
-//mode:数据/命令标志 0,表示命令;1,表示数据;
-void OLED_WR_Byte(uint8_t dat,uint8_t mode)
-{
-  I2C_Start();
-  Send_Byte(0x78);
-  I2C_WaitAck();
-  if(mode){Send_Byte(0x40);}
-  else{Send_Byte(0x00);}
-  I2C_WaitAck();
-  Send_Byte(dat);
-  I2C_WaitAck();
-  I2C_Stop();
+    OLED_SCLK_Clr();
+    if(dat&0x80)
+       OLED_SDIN_Set();
+    else 
+       OLED_SDIN_Clr();
+    OLED_SCLK_Set();
+    dat<<=1;   
+  }                
 }
 
 //更新显存到OLED  
@@ -426,6 +397,8 @@ void OLED_Init(void)
   pinMode(scl,OUTPUT);//设置数字8
   pinMode(sda,OUTPUT);//设置数字9
   pinMode(res,OUTPUT);//设置数字10
+  pinMode(dc,OUTPUT);//设置数字11
+  pinMode(cs,OUTPUT);//设置数字12
   
   OLED_RST_Set();
   delay(100);

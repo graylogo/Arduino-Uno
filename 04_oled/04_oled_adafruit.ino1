@@ -1,0 +1,48 @@
+// 04_OLED_Adafruit.ino - 使用 Adafruit 库驱动 SSD1306
+#include &lt;Wire.h&gt;
+#include &lt;Adafruit_GFX.h&gt;
+#include &lt;Adafruit_SSD1306.h&gt;
+
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+#define OLED_RESET    -1 // 不使用复位引脚
+
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &amp;Wire, OLED_RESET);
+
+void setup() {
+  Serial.begin(9600);
+
+  // 初始化屏幕，尝试地址 0x3C，如果不行改为 0x3D
+  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
+    Serial.println(F("SSD1306 allocation failed"));
+    for(;;);
+  }
+
+  // 清屏
+  display.clearDisplay();
+  display.display();
+  delay(1000);
+
+  // 显示测试内容
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(0,0);
+  display.println(F("Arduino Uno"));
+  display.println(F("OLED Test"));
+  display.println(F(""));
+  display.println(F("Hello!"));
+  display.display();
+}
+
+void loop() {
+  // 循环闪烁显示
+  static int count = 0;
+  display.clearDisplay();
+  display.setTextSize(2);
+  display.setCursor(0,20);
+  display.print(F("Count: "));
+  display.println(count);
+  display.display();
+  count++;
+  delay(500);
+}
