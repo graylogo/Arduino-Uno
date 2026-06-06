@@ -88,14 +88,36 @@ void loop()
   
   // 1. 读取电位器并控制风扇
   adcValue = analogRead(POT_PIN);
-  pwmValue = map(adcValue, 0, 1023, 50, 255); // 50是最小启动PWM
-  analogWrite(FAN_PWM_PIN, pwmValue);
-  speedPercent = map(pwmValue, 50, 255, 0, 100);
   
-  // 2. 每秒计算一次转速
+  // 优化PWM映射：当电位器很小时，完全关闭风扇；超过阈值后线性增加
+  if (adcValue < 50) {
+    pwmValue = 0; // 完全关闭
+  } else {
+    pwmValue = map(adcValue, 50, 1023, 50, 255); // 50是最小启动PWM
+  }
+  analogWrite(FAN_PWM_PIN, pwmValue);
+  
+  // 计算速度百分比
+  if (pwmValue == 0) {
+    speedPercent = 0;
+  } else {
+    speedPercent = map(pwmValue, 50, 255, 0, 100);
+  }
+  
+  // 2. 每秒计算一次转速（使用原子操作和精确时间计算）
   if (now - lastTachTime >= 1000) {
-    fanRpm = (tachCount / 2) * 60; // 每转2脉冲
+    unsigned int currentCount;
+    unsigned long dt = now - lastTachTime;
+    
+    // 原子化操作：先关闭中断，读取并清零计数
+    noInterrupts();
+    currentCount = tachCount;
     tachCount = 0;
+    interrupts();
+    
+    // 计算RPM：每转2个脉冲，时间差dt毫秒
+    // RPM = (脉冲数 / 2) * (60 * 1000 / dt) = 脉冲数 * 30000 / dt
+    fanRpm = (int)((unsigned long)currentCount * 30000UL / dt);
     lastTachTime = now;
   }
   
