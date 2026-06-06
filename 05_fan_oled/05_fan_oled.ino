@@ -26,8 +26,15 @@ unsigned long lastTachTime = 0;      // 上次转速计算时间
 unsigned long lastOledUpdate = 0;    // 上次OLED更新时间
 int adcValue = 0;
 int pwmValue = 0;
+int targetPwmValue = 0;  // 目标PWM值
 int fanRpm = 0;
 int speedPercent = 0;
+
+// 启动力矩相关变量
+bool isStarting = false;          // 是否在启动阶段
+unsigned long startTime = 0;      // 启动开始时间
+const unsigned long startDuration = 500;  // 启动力矩持续时间（ms）
+const int startBoostPwm = 200;    // 启动力矩PWM值
 
 // 缓存上一次的显示值，只在变化时刷新
 int lastAdcValue = -1;
@@ -86,25 +93,41 @@ void loop()
 {
   unsigned long now = millis();
   
-  // 1. 读取电位器并控制风扇
+  // 1. 读取电位器并计算目标PWM
   adcValue = analogRead(POT_PIN);
   
   // 优化PWM映射：当电位器很小时，完全关闭风扇；超过阈值后线性增加
   if (adcValue < 50) {
-    pwmValue = 0; // 完全关闭
+    targetPwmValue = 0; // 完全关闭
   } else {
-    pwmValue = map(adcValue, 50, 1023, 50, 255); // 50是最小启动PWM
+    targetPwmValue = map(adcValue, 50, 1023, 50, 255); // 50是最小启动PWM
   }
+  
+  // 2. 启动力矩逻辑
+  if (targetPwmValue > 0 && pwmValue == 0) {
+    // 检测到从0到非0的转换，启动启动力矩
+    isStarting = true;
+    startTime = now;
+    pwmValue = startBoostPwm; // 先给启动力矩
+  } else if (isStarting && now - startTime >= startDuration) {
+    // 启动力矩时间到，回到目标PWM
+    isStarting = false;
+    pwmValue = targetPwmValue;
+  } else if (!isStarting) {
+    // 正常运行，直接使用目标PWM
+    pwmValue = targetPwmValue;
+  }
+  
   analogWrite(FAN_PWM_PIN, pwmValue);
   
   // 计算速度百分比
-  if (pwmValue == 0) {
+  if (targetPwmValue == 0) {
     speedPercent = 0;
   } else {
-    speedPercent = map(pwmValue, 50, 255, 0, 100);
+    speedPercent = map(targetPwmValue, 50, 255, 0, 100);
   }
   
-  // 2. 每秒计算一次转速（使用原子操作和精确时间计算）
+  // 3. 每秒计算一次转速（使用原子操作和精确时间计算）
   if (now - lastTachTime >= 1000) {
     unsigned int currentCount;
     unsigned long dt = now - lastTachTime;
@@ -121,7 +144,7 @@ void loop()
     lastTachTime = now;
   }
   
-  // 3. 每100ms检查是否需要更新OLED（只有内容变化时才刷新）
+  // 4. 每100ms检查是否需要更新OLED（只有内容变化时才刷新）
   if (now - lastOledUpdate >= 100) {
     if (adcValue != lastAdcValue || pwmValue != lastPwmValue || fanRpm != lastFanRpm) {
       // 先清屏（只在需要时清）
