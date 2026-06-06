@@ -4,20 +4,36 @@
  * 实验内容：通过电位器调节 Arduino 的 PWM 输出，控制风扇转速
  * 硬件连接：
  *   - 电位器：同实验 02
- *   - PWM 风扇控制信号连接 Arduino 9 号引脚（必须是支持 PWM 的引脚）
+ *   - PWM 风扇控制信号连接 Arduino 9 号引脚
+ *   - 风扇转速信号（Tach）连接 Arduino 2 号引脚（中断0）
  * 
  * 注意：Arduino Uno 支持 PWM 的引脚：3, 5, 6, 9, 10, 11
  */
 
 const int POT_PIN = A0;       // 电位器中间抽头连接 A0
-const int FAN_PWM_PIN = 9;    // 风扇 PWM 控制信号连接 9 号引脚
+const int FAN_PWM_PIN = 9;   // 风扇 PWM 控制信号连接 9 号引脚
+const int FAN_TACH_PIN = 2;  // 风扇转速信号连接 2 号引脚（中断0）
+
+volatile unsigned int tachCount = 0;  // 转速脉冲计数（volatile 用于中断中修改）
+unsigned long lastTime = 0;           // 上次计算时间
 
 int adcValue = 0;             // ADC 原始值 (0-1023)
 int pwmValue = 0;             // PWM 输出值 (0-255)
+int fanRpm = 0;              // 风扇转速（RPM）
+
+void tachISR() {
+  tachCount++;  // 每次中断（方波下降沿）计数加1
+}
 
 void setup() {
   Serial.begin(9600);
-  pinMode(FAN_PWM_PIN, OUTPUT);  // 设置风扇引脚为输出模式
+  pinMode(FAN_PWM_PIN, OUTPUT);
+  pinMode(FAN_TACH_PIN, INPUT_PULLUP);  // 开启内部上拉
+  
+  // 绑定中断处理函数，下降沿触发
+  attachInterrupt(digitalPinToInterrupt(FAN_TACH_PIN), tachISR, FALLING);
+  
+  lastTime = millis();
 }
 
 void loop() {
@@ -30,14 +46,22 @@ void loop() {
   // 输出 PWM 信号控制风扇
   analogWrite(FAN_PWM_PIN, pwmValue);
   
-  // 串口输出
-  Serial.print("ADC: ");
-  Serial.print(adcValue);
-  Serial.print(" | PWM: ");
-  Serial.print(pwmValue);
-  Serial.print(" | Speed: ");
-  Serial.print(map(pwmValue, 0, 255, 0, 100));  // 转换为 0-100% 显示
-  Serial.println("%");
-  
-  delay(100);
+  // 每秒计算一次转速
+  if (millis() - lastTime >= 1000) {
+    // 风扇每转一般输出 2 个脉冲（Tach 信号）
+    // RPM = 脉冲数 / 2 / 时间(秒)
+    fanRpm = (tachCount / 2) * (1000.0 / (millis() - lastTime)) * 60;
+    
+    Serial.print("ADC: ");
+    Serial.print(adcValue);
+    Serial.print(" | PWM: ");
+    Serial.print(pwmValue);
+    Serial.print(" | Speed: ");
+    Serial.print(map(pwmValue, 0, 255, 0, 100));
+    Serial.print("% | RPM: ");
+    Serial.println(fanRpm);
+    
+    tachCount = 0;
+    lastTime = millis();
+  }
 }

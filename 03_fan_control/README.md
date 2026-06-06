@@ -25,13 +25,14 @@ Arduino GND ──────── 电位器 引脚3
 风扇 VCC  ──────── 外部电源正极（如 12V）
 风扇 GND  ──────── Arduino GND 和外部电源负极
 风扇 PWM  ──────── Arduino 9 号引脚
+风扇 Tach ──────── Arduino 2 号引脚（转速反馈信号）
 ```
 
 ⚠️ **重要提示**：
 1. 风扇电源必须与 Arduino **共地**（GND 连在一起）
 2. 大多数 PWM 风扇是 12V 供电，需要独立电源，不能直接接 Arduino 5V
 3. Arduino PWM 引脚输出 0-5V PWM 信号用于控制
-4. 确保风扇的 PWM 控制线与 Arduino 引脚匹配
+4. 风扇的 Tach（转速信号）是开漏输出，需要上拉电阻，代码中已开启内部上拉
 
 ## 代码说明
 - `map(value, fromLow, fromHigh, toLow, toHigh)` - 数值映射函数
@@ -46,7 +47,7 @@ Arduino GND ──────── 电位器 引脚3
 
 串口监视器显示：
 ```
-ADC: 0 | PWM: 0 | Speed: 0%
-ADC: 512 | PWM: 127 | Speed: 50%
-ADC: 1023 | PWM: 255 | Speed: 100%
+ADC: 0 | PWM: 0 | Speed: 0% | RPM: 0
+ADC: 512 | PWM: 127 | Speed: 50% | RPM: 1500
+ADC: 1023 | PWM: 255 | Speed: 100% | RPM: 3000
 ```
