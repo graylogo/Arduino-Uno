@@ -3,14 +3,14 @@
 
 // ================== OLED引脚定义 ==================
 int scl=8;  // OLED SCL
-int sda=6;  // OLED SDA (从9改成6，避免冲突)
+int sda=9;  // OLED SDA (保持9，接线方便)
 int res=10; // OLED RES
 int dc=11;  // OLED DC
 int cs=12;  // OLED CS
 
 // ================== 风扇和电位器引脚定义 ==================
 const int POT_PIN = A0;      // 电位器
-const int FAN_PWM_PIN = 3;   // 风扇PWM (从9改成3)
+const int FAN_PWM_PIN = 5;   // 风扇PWM (改成5，避开OLED)
 const int FAN_TACH_PIN = 2;  // 风扇TACH
 
 // ================== 变量定义 ==================

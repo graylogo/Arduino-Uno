@@ -11,18 +11,18 @@
 | 电位器抽头 | OUT   | A0          |
 | 风扇 VCC   | VCC   | 外部12V     |
 | 风扇 GND   | GND   | GND         |
-| 风扇 PWM   | PWM   | 3           |
+| 风扇 PWM   | PWM   | 5           |
 | 风扇 TACH  | TACH  | 2           |
 | OLED GND   | GND   | GND         |
 | OLED VCC   | VCC   | 3.3V        |
 | OLED D0    | SCL   | 8           |
-| OLED D1    | SDA   | 6           |
+| OLED D1    | SDA   | 9           |
 | OLED RES   | RES   | 10          |
 | OLED DC    | DC    | 11          |
 | OLED CS    | CS    | 12          |
 
 ## 说明
-- 为了避开引脚冲突，我们把原来03实验的风扇PWM从9改到了3，04实验的OLED SDA从9改到了6
+- 为了OLED接线方便，保持OLED D1在9不变，风扇PWM改到5
 - 风扇需要外部电源（通常是12V），但GND必须和Arduino共地
 - 电位器保持和原来一样连接A0
 
