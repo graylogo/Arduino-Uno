@@ -1,0 +1,44 @@
+# Arduino项目忽略规则
+
+# 文档文件夹（太大，不提交）
+doc/
+
+# Arduino IDE 临时文件
+*.tmp
+*.bak
+*.swp
+
+# 编译产物
+*.hex
+*.elf
+*.o
+*.d
+*.lst
+*.obj
+*.crf
+*.axf
+*.map
+
+# 项目文件
+*.lnp
+*.uvproj
+*.uvopt
+*.uvgui.*
+*.M51
+*.build_log.htm
+*.sct
+*.dep
+
+# STM32 相关
+CORE/
+OBJ/
+
+# 压缩文件
+*.zip
+*.rar
+*.7z
+
+# 备份文件
+*~
+*.backup
+*(1).*
